@@ -15,8 +15,10 @@
 #include <iostream>
 #include <array>
 #include <assimp/Importer.hpp>
+
 #include "Model.h"
 #include "Camera.h"
+#include "AABoundingBox.h"
 
 
 ostream& operator<<(ostream& os, glm::vec3 val)
@@ -24,6 +26,29 @@ ostream& operator<<(ostream& os, glm::vec3 val)
 	os << "(" << val.x << ", " << val.y << ", " << val.z << ")";
 	return os;
 }
+
+void TestAABB()
+{
+	std::vector<glm::vec3> vertices = {
+		{-1, -1, -1},
+		{1, 1, 1},
+	};
+
+	CAABoundingBox aabb;
+	aabb.Build(vertices);
+
+	CRay ray;
+	ray.position = { 3.0f, 0, 3 };
+	ray.direction = glm::normalize(glm::vec3(0, 0.5f, 0) - ray.position);
+
+	CRayCastInfo info;
+	if (aabb.RayCast(ray, info))
+	{
+		cout << "hit pos: " << info.position << "hit normal: " << info.normal << endl;
+	}
+}
+
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -91,7 +116,7 @@ int CreateTexture2D(std::string tex_path)
 
 int main()
 {
-
+	TestAABB();
 	using namespace glm;
 	using namespace std;
 	// glfw: initialize and configure
@@ -130,7 +155,7 @@ int main()
 
 	auto model_path = CSourceFinder::FindModelFullPath("nanosuit/nanosuit.obj");
 	Model person(model_path);
-	
+
 	auto vs_path = CSourceFinder::FindShaderFullPath("model.vert");
 	auto fs_path = CSourceFinder::FindShaderFullPath("model.frag");
 	CShader shader(vs_path.c_str(), fs_path.c_str());
@@ -262,7 +287,7 @@ int main()
 		// input
 // -----
 		processInput(window);
-		
+
 		glm::mat4 model(1.0f);
 		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -270,7 +295,7 @@ int main()
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		// camera/view transformation
 		glm::mat4 view = camera.GetViewMatrix();
-		
+
 
 
 		// render
@@ -279,7 +304,7 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		
+
 		// draw our first triangle
 
 		glActiveTexture(GL_TEXTURE0);
@@ -287,7 +312,7 @@ int main()
 
 
 
-		
+
 		// glActiveTexture(GL_TEXTURE1);
 		// glBindTexture(GL_TEXTURE_2D, texture2);
 		shader.use();
@@ -300,7 +325,7 @@ int main()
 		shader.setMat4("projection", projection);
 
 		person.Draw(shader);
-		
+
 		// glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 		//
 		//
