@@ -45,54 +45,29 @@ void CAABoundingBox::Build(const std::vector<glm::vec3>& vertices)
 
 bool CAABoundingBox::RayCast(const CRay& ray, CRayCastInfo& info)
 {
-	// todo 处理direction 某分量为0时情况
 	using namespace glm;
-	std::vector<float> tMins;
-	std::vector<float> tMaxs;
 
-	// x, y, z 分量分别求
-	for (int i = 0; i < 3; i++)
-	{
-		float tMin = (m_minPos[i] - ray.position[i]) / ray.direction[i];
-		float tMax = (m_maxPos[i] - ray.position[i]) / ray.direction[i];
+	// 为0时加下很小的非零项，避免除0错误
+	vec3 direction = ray.direction + vec3(glm::equal(ray.direction, vec3(0))) * vec3(1e-7);	
 
-		// 进入的tMin 必定小于出去的 tMax
-		if (tMin > tMax)
-		{
-			std::swap(tMin, tMax);
-		}
-		tMins.push_back(tMin);
-		tMaxs.push_back(tMax);
-	}
+	vec3 tMins = (m_minPos - ray.position) / direction;
+	vec3 tMaxs = (m_maxPos - ray.position) / direction;
+
+	vec3 tRealMins = glm::min(tMins, tMaxs);
+	vec3 tRealMaxs = glm::max(tMins, tMaxs);
 	
-	std::sort(tMins.begin(), tMins.end());
-	std::sort(tMaxs.begin(), tMaxs.end());
-	float tMin = *tMins.rbegin();
-	float tMax = *tMaxs.begin();
+	float tMin = std::max({ tRealMins.x, tRealMins.y, tRealMins.z });
+	float tMax = std::min({ tRealMaxs.x, tRealMaxs.y, tRealMaxs.z });
 
-	if (tMax > 0 && tMax > tMin)
-	{
-		info.position = ray.position + tMin * ray.direction;
-		vec3 normal = vec3(0);
-		
-		for (int i = 0; i < 3; i++)
-		{
-			vec3 n = vec3(0);
-			n[i] = 1;
-			// 相等则说明在那个面上
-			if (info.position[i] == m_maxPos[i])
-			{
-				normal += n;
-			}
-			else if (info.position[i] == m_minPos[i])
-			{
-				normal -= n;
-			}
-		}
-		
-		info.normal = normalize(normal);
+	if (tMax > 0 && tMax > tMin) {
+		vec3 position = ray.position + tMin * direction;
+		// 分量相等则说明交点在此面上，法线就加上这个方向的分量
+		vec3 onMinFaceVec = -equal(position, m_minPos);
+		vec3 onMaxFaceVec = equal(position, m_maxPos);
+		vec3 normal = glm::normalize(onMinFaceVec + onMaxFaceVec);
+		info.position = position;
+		info.normal = normal;
 		return true;
 	}
-
 	return false;
 }
