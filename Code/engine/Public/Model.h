@@ -19,6 +19,8 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include "Transform.h"
+#include "AABoundingBox.h"
 using namespace std;
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
@@ -30,6 +32,8 @@ public:
     vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     vector<Mesh>    meshes;
     string directory;
+    CTransform transform;
+    CAABoundingBox bounding_box;
     bool gammaCorrection;
 
     // constructor, expects a filepath to a 3D model.
@@ -63,6 +67,17 @@ private:
 
         // process ASSIMP's root node recursively
         processNode(scene->mRootNode, scene);
+
+        vector<glm::vec3> vertices;
+        for (const auto& mesh : meshes)
+        {
+	        for (auto const& v : mesh.vertices)
+	        {
+                vertices.push_back(v.Position);
+	        }
+        }
+
+        bounding_box.Build(vertices);
     }
 
     // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).

@@ -10,6 +10,7 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/quaternion.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "sstream"
 #include <iostream>
@@ -19,6 +20,9 @@
 #include "Model.h"
 #include "Camera.h"
 #include "AABoundingBox.h"
+#include "utils.h"
+
+
 
 
 ostream& operator<<(ostream& os, glm::vec3 val)
@@ -54,7 +58,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-
+void processModelInput(Model& model, GLFWwindow* window);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -116,7 +120,7 @@ int CreateTexture2D(std::string tex_path)
 
 int main()
 {
-	TestAABB();
+	//TestAABB();
 	using namespace glm;
 	using namespace std;
 	// glfw: initialize and configure
@@ -153,12 +157,14 @@ int main()
 		return -1;
 	}
 
-	auto model_path = CSourceFinder::FindModelFullPath("nanosuit/nanosuit.obj");
-	Model person(model_path);
+	Model person(CSourceFinder::FindModelFullPath("nanosuit/nanosuit.obj"));
 
 	auto vs_path = CSourceFinder::FindShaderFullPath("model.vert");
 	auto fs_path = CSourceFinder::FindShaderFullPath("model.frag");
 	CShader shader(vs_path.c_str(), fs_path.c_str());
+
+	CShader baseShader = GetBaseShader();
+	Model baseModel(CSourceFinder::FindModelFullPath("base/cube.fbx"));
 
 	auto container_path = CSourceFinder::FindTexFullPath("container.jpg");
 
@@ -168,63 +174,8 @@ int main()
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	// ------------------------------------------------------------------
 	//
-	struct VertexData
-	{
-		vec3 position;
-		//vec3 color;
-		vec2 uv;
-	};
-	VertexData vertices[] = {
-
-		// z+
-			{{-0.5f, -0.5f,  0.5f},  {0.0f, 0.0f}},
-	{{ 0.5f, -0.5f,  0.5f},  {1.0f, 0.0f}},
-	{{ 0.5f,  0.5f,  0.5f},  {1.0f, 1.0f}},
-	{{ 0.5f,  0.5f,  0.5f},  {1.0f, 1.0f}},
-	{{-0.5f,  0.5f,  0.5f},  {0.0f, 1.0f}},
-	{{-0.5f, -0.5f,  0.5f},  {0.0f, 0.0f}},
-
-	// x+
-		{{ 0.5f,  -0.5f,  0.5f},  {0.0f, 0.0f}},
-	{{ 0.5f,  -0.5f, -0.5f},  {1.0f, 0.0f}},
-	{{ 0.5f, 0.5f, -0.5f},  {1.0f, 1.0f}},
-	{{ 0.5f, 0.5f, -0.5f},  {1.0f, 1.0f}},
-	{{ 0.5f, 0.5f,  0.5f},  {0.0f, 1.0f}},
-	{{ 0.5f,  -0.5f,  0.5f},  {0.0f, 0.0f}},
-
-	// z-
-{{0.5f, -0.5f, -0.5f},  {0.0f, 0.0f}},
-{{ -0.5f, -0.5f, -0.5f},  {1.0f, 0.0f}},
-{{ -0.5f,  0.5f, -0.5f},  {1.0f, 1.0f}},
-{{ -0.5f,  0.5f, -0.5f},  {1.0f, 1.0f}},
-{{0.5f,  0.5f, -0.5f},  {0.0f, 1.0f}},
-{{0.5f, -0.5f, -0.5f},  {0.0f, 0.0f}},
 
 
-//x-
-{{-0.5f,  -0.5f,  -0.5f},  {0.0f, 0.0f}},
-{{-0.5f,  -0.5f, 0.5f},  {1.0f, 0.0f}},
-{{-0.5f, 0.5f, 0.5f},  {1.0f, 1.0f}},
-{{-0.5f, 0.5f, 0.5f},  {1.0f, 1.0f}},
-{{-0.5f, 0.5f,  -0.5f},  {0.0f, 1.0f}},
-{{-0.5f,  -0.5f,  -0.5f},  {0.0f, 0.0f}},
-
-
-
-{{-0.5f, -0.5f, -0.5f},  {0.0f, 1.0f}},
-{{ 0.5f, -0.5f, -0.5f},  {1.0f, 1.0f}},
-{{ 0.5f, -0.5f,  0.5f},  {1.0f, 0.0f}},
-{{ 0.5f, -0.5f,  0.5f},  {1.0f, 0.0f}},
-{{-0.5f, -0.5f,  0.5f},  {0.0f, 0.0f}},
-{{-0.5f, -0.5f, -0.5f},  {0.0f, 1.0f}},
-
-{{-0.5f,  0.5f, -0.5f},  {0.0f, 1.0f}},
-{{ 0.5f,  0.5f, -0.5f},  {1.0f, 1.0f}},
-{{ 0.5f,  0.5f,  0.5f},  {1.0f, 0.0f}},
-{{ 0.5f,  0.5f,  0.5f},  {1.0f, 0.0f}},
-{{-0.5f,  0.5f,  0.5f},  {0.0f, 0.0f}},
-{{-0.5f,  0.5f, -0.5f},  {0.0f, 1.0f}}
-	};
 
 	unsigned int VBO, VAO;
 	glGenVertexArrays(1, &VAO);
@@ -285,11 +236,10 @@ int main()
 
 
 		// input
-// -----
 		processInput(window);
+		processModelInput(person, window);
 
-		glm::mat4 model(1.0f);
-		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		
 
 		// pass projection matrix to shader (note that in this case it could change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -310,34 +260,38 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
 
+		baseShader.use();
+		{
+			glm::mat4 model(1.0f);
+			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			baseShader.setMat4("model", model);
+			baseShader.setMat4("view", view);
+			baseShader.setMat4("projection", projection);
+		}
+		//baseModel.Draw(baseShader);
 
+		
 
-
-		// glActiveTexture(GL_TEXTURE1);
-		// glBindTexture(GL_TEXTURE_2D, texture2);
 		shader.use();
-		shader.setInt("oTex", 0);
-		shader.setInt("oTex2", 1);
+		{
+			glm::mat4 model = person.transform.matrix();
+			shader.setMat4("model", model);
+			shader.setMat4("view", view);
+			shader.setMat4("projection", projection);
+		}
 
-
-		shader.setMat4("model", model);
-		shader.setMat4("view", view);
-		shader.setMat4("projection", projection);
-
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		person.Draw(shader);
 
-		// glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-		//
-		//
-		// for (int i = 0; i < 4; i++)
-		// {
-		// 	glActiveTexture(GL_TEXTURE1);
-		// 	glBindTexture(GL_TEXTURE_2D, texture_arr[i]);
-		// 	glDrawArrays(GL_TRIANGLES, 6 * i, 6);
-		// }
-		// glActiveTexture(GL_TEXTURE1);
-		// glBindTexture(GL_TEXTURE_2D, texture2);
-		// glDrawArrays(GL_TRIANGLES, 6 * 4, 12);
+		
+		baseShader.use();
+		{
+			glm::mat4 model = person.transform.matrix();
+			shader.setMat4("model", model);
+			shader.setMat4("view", view);
+			shader.setMat4("projection", projection);
+		}
+		person.bounding_box.Draw(baseShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
@@ -381,6 +335,53 @@ void processInput(GLFWwindow* window)
 	{
 		cout << "camera position: " << camera.Position << endl;
 	}
+}
+
+void processModelInput(Model& model, GLFWwindow* window)
+{
+	using namespace glm;
+	vec3 position(0);
+	quat rotation(1, 0, 0, 0);
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		position += camera.Front;
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		position -= camera.Front;
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		{
+			rotation = angleAxis(deltaTime, camera.Up) * rotation;
+		}
+		else
+		{
+			position += camera.Right;
+
+		}
+	}
+		
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL))
+		{
+			rotation = angleAxis(-deltaTime, camera.Up) * rotation;
+		}
+		else
+		{
+			position -= camera.Right;
+		}
+	}
+
+	if (position != vec3(0))
+	{
+		position = normalize(position);
+		model.transform.m_position += position * deltaTime * 5.0f;
+	}
+
+	if (rotation != quat(1, 0, 0, 0))
+	{
+		model.transform.m_rotataion = rotation * model.transform.m_rotataion;
+	}
+		
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
