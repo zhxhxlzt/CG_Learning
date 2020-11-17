@@ -59,13 +59,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 void processModelInput(Model& model, GLFWwindow* window);
+void processCameraTransform(GLFWwindow* window);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 15.0f, 20.0f));
+Camera camera(glm::vec3(0.0f, 0, 20.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -74,6 +75,8 @@ bool firstMouse = true;
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
+float mouseOffsetX = 0.0f;
+float mouseOffsetY = 0.0f;
 
 
 int CreateTexture2D(std::string tex_path)
@@ -147,7 +150,7 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 
 	// glad: load all OpenGL function pointers
 	// ---------------------------------------
@@ -225,17 +228,44 @@ int main()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-
+		camera.Aspect = (float)SCR_WIDTH / SCR_HEIGHT;
 		// input
 		processInput(window);
 		processModelInput(person, window);
 
+		if (glfwGetMouseButton(window, 1) == GLFW_PRESS)
+		{
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			processCameraTransform(window);
+			camera.ProcessMouseMovement(mouseOffsetX, mouseOffsetY);
+			mouseOffsetX = mouseOffsetY = 0;
+		}
+		else
+		{
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			
+
+		}
+
+		if (glfwGetMouseButton(window, 0) == GLFW_PRESS)
+		{
+			CRay ray = camera.GetRay(vec2(lastX / SCR_WIDTH, 1 - lastY / SCR_HEIGHT));
+			CRayCastInfo info;
+			if (person.bounding_box.RayCast(ray, info))
+			{
+				cout << "intersect pos:" << info.position << endl;
+			}
+		}
+
 		
 
 		// pass projection matrix to shader (note that in this case it could change every frame)
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		// camera/view transformation
+		
 		glm::mat4 view = camera.GetViewMatrix();
+
+		glm::mat4 projection = camera.GetPerspectiveProjectionMatrix();
 
 		SCamMat camMat;
 		camMat.view = view;
@@ -308,13 +338,8 @@ int main()
 	return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window)
+void processCameraTransform(GLFWwindow* window)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		camera.ProcessKeyboard(FORWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -333,6 +358,14 @@ void processInput(GLFWwindow* window)
 	{
 		cout << "camera position: " << camera.Position << endl;
 	}
+}
+
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow* window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
 }
 
 void processModelInput(Model& model, GLFWwindow* window)
@@ -389,6 +422,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	// make sure the viewport matches the new window dimensions; note that width and 
 	// height will be significantly larger than specified on retina displays.
 	glViewport(0, 0, width, height);
+	SCR_WIDTH = width;
+	SCR_HEIGHT = height;
 }
 
 // glfw: whenever the mouse moves, this callback is called
@@ -402,13 +437,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 		firstMouse = false;
 	}
 
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	mouseOffsetX = xpos - lastX;
+	mouseOffsetY = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
 	lastX = xpos;
 	lastY = ypos;
-
-	camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
