@@ -166,6 +166,8 @@ int main()
 	CShader baseShader = GetBaseShader();
 	Model baseModel(CSourceFinder::FindModelFullPath("base/cube.fbx"));
 
+	CShader bboxShader(CSourceFinder::FindShaderFullPath("bbox.vert").data(), CSourceFinder::FindShaderFullPath("bbox.frag").data());
+
 	auto container_path = CSourceFinder::FindTexFullPath("container.jpg");
 
 	auto texture1 = CreateTexture2D(container_path);
@@ -262,36 +264,43 @@ int main()
 
 		baseShader.use();
 		{
+			glDisable(GL_BLEND);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glm::mat4 model(1.0f);
 			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			baseShader.setMat4("model", model);
 			baseShader.setMat4("view", view);
 			baseShader.setMat4("projection", projection);
+			baseModel.Draw(baseShader);
 		}
-		//baseModel.Draw(baseShader);
-
 		
 
 		shader.use();
 		{
+			glDisable(GL_BLEND);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glm::mat4 model = person.transform.matrix();
 			shader.setMat4("model", model);
 			shader.setMat4("view", view);
 			shader.setMat4("projection", projection);
 		}
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		person.Draw(shader);
 
-		
-		baseShader.use();
+		bboxShader.use();
 		{
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glLineWidth(2);
+			glEnable(GL_LINE_SMOOTH);
+			glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 			glm::mat4 model = person.transform.matrix();
-			shader.setMat4("model", model);
-			shader.setMat4("view", view);
-			shader.setMat4("projection", projection);
+			bboxShader.setMat4("model", model);
+			bboxShader.setMat4("view", view);
+			bboxShader.setMat4("projection", projection);
+			person.bounding_box.Draw(bboxShader);
 		}
-		person.bounding_box.Draw(baseShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------

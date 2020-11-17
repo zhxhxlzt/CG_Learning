@@ -58,8 +58,6 @@ void CAABoundingBox::Build(const std::vector<glm::vec3>& vertices)
 		vertices.push_back({ m_maxPos.x, m_minPos.y, m_minPos.z });
 		vertices.push_back({ m_maxPos.x, m_maxPos.y, m_minPos.z });
 
-		// vertices.push_back(m_maxPos);
-		// vertices.push_back({ m_minPos.x, m_maxPos.y, m_minPos.z });
 		glGenVertexArrays(1, &vao);
 		glGenBuffers(1, &vbo);
 		glGenBuffers(1, &ebo);
@@ -72,26 +70,22 @@ void CAABoundingBox::Build(const std::vector<glm::vec3>& vertices)
 		vector<unsigned int>& indices = m_indices;
 		indices = {
 			0, 1, 2,
-			1, 2, 3,
+			0, 2, 3,
 			4, 5, 6,
 			4, 6, 7,
 			1, 5, 4,
 			1, 4, 2,
 			6, 0, 3,
 			6, 3, 7,
-			//2, 4, 7,
-			//2, 7, 3,
-			//1, 5, 6,
-			//1, 6, 0
-			//5, 6, 7,
-			//5, 7, 8
-			//2, 5, 8, 2, 8, 3, 5, 6, 7, 5, 7, 8, 6, 1, 4, 6, 4, 7, 1, 2, 5, 1, 5, 6, 4, 3, 8, 4, 8, 7 };
+			2, 4, 7,
+			2, 7, 3,
+			0, 6, 5,
+			0, 5, 1,
 		};
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), NULL);
 		glEnableVertexAttribArray(0);
 	}
-	
 }
 
 bool CAABoundingBox::RayCast(const CRay& ray, CRayCastInfo& info)
@@ -125,11 +119,6 @@ bool CAABoundingBox::RayCast(const CRay& ray, CRayCastInfo& info)
 
 void CAABoundingBox::Draw(CShader& shader)
 {
-	using namespace std;
-	using namespace glm;
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glBindVertexArray(vao);
-	// glDrawArrays(GL_TRIANGLES, 0, 3);
-	// glDrawArrays(GL_LINE_STRIP, 0, m_vertices.size());
-	glDrawElements(GL_LINE_STRIP, m_indices.size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
 }
