@@ -203,30 +203,19 @@ int main()
 	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
 	glBindVertexArray(0);
 
-
-	// uncomment this call to draw in wireframe polygons.
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-
-	glm::mat4 view(1.0f);
-	// 注意，我们将矩阵向我们要进行移动场景的反方向移动。
-	//view = glm::translate(view, glm::vec3(0.0f, 2, -3.0f));
-	view = glm::lookAt(vec3(0.0f, 1.5f, 10.0f), vec3(0.0f), vec3(0, 1, 0));
-	glm::mat4 projection(1.0f);
-	projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
-
-	int texture_arr[4];
-	for (int i = 0; i < 4; i++)
+	struct SCamMat
 	{
-		std::stringstream convert;
-		convert << i;
-		std::string num;
-		convert >> num;
-		auto pos = awesomeface_path.find(".png");
-		std::string png_path = awesomeface_path.substr(0, pos) + num + ".png";
-		cout << "png path:" << png_path << endl;
-		texture_arr[i] = CreateTexture2D(png_path);
-	}
+		glm::mat4 view;
+		glm::mat4 proj;
+	};
+	unsigned int camMatBuffer;
+	glGenBuffers(1, &camMatBuffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, camMatBuffer);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(SCamMat), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, camMatBuffer);
+
+
 	glEnable(GL_DEPTH_TEST);
 	// render loop
 	// -----------
@@ -247,6 +236,12 @@ int main()
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		// camera/view transformation
 		glm::mat4 view = camera.GetViewMatrix();
+
+		SCamMat camMat;
+		camMat.view = view;
+		camMat.proj = projection;
+		glBindBuffer(GL_UNIFORM_BUFFER, camMatBuffer);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(camMat), &camMat);
 
 
 
@@ -269,8 +264,6 @@ int main()
 			glm::mat4 model(1.0f);
 			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			baseShader.setMat4("model", model);
-			baseShader.setMat4("view", view);
-			baseShader.setMat4("projection", projection);
 			baseModel.Draw(baseShader);
 		}
 		
@@ -281,8 +274,6 @@ int main()
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glm::mat4 model = person.transform.matrix();
 			shader.setMat4("model", model);
-			shader.setMat4("view", view);
-			shader.setMat4("projection", projection);
 		}
 
 		person.Draw(shader);
@@ -297,8 +288,6 @@ int main()
 			glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 			glm::mat4 model = person.transform.matrix();
 			bboxShader.setMat4("model", model);
-			bboxShader.setMat4("view", view);
-			bboxShader.setMat4("projection", projection);
 			person.bounding_box.Draw(bboxShader);
 		}
 
