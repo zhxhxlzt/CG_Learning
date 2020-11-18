@@ -25,7 +25,7 @@ using namespace std;
 
 unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false);
 
-class Model
+class Model : public CRayCastable
 {
 public:
     // model data 
@@ -48,6 +48,7 @@ public:
         for (unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
     }
+	bool RayCast(const CRay& ray, CRayCastInfo& info) override;
 
 private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
@@ -256,5 +257,25 @@ unsigned int TextureFromFile(const char* path, const string& directory, bool gam
     }
 
     return textureID;
+}
+
+inline bool Model::RayCast(const CRay& ray, CRayCastInfo& info)
+{
+    using namespace std;
+    int count = 0;
+	if (bounding_box.RayCast(ray, info))
+	{
+        for (auto& m : meshes)
+        {
+            count += m.indices.size() / 3;
+            if (m.RayCast(ray, info))
+            {
+                cout << "travers triangle count: " << count << endl;
+                return true;
+            }
+            
+        }
+	}
+    return false;
 }
 #endif

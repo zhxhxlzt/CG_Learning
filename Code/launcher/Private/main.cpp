@@ -220,6 +220,8 @@ int main()
 
 
 	glEnable(GL_DEPTH_TEST);
+
+	CTriangleTest triangle;
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))
@@ -253,18 +255,19 @@ int main()
 			CRayCastInfo info;
 			if (person.bounding_box.RayCast(ray, info))
 			{
-				cout << "intersect pos:" << info.position << endl;
+				cout << "intersect bbox, pos:" << info.position << endl;
+			}
+			if (triangle.RayCast(ray, info))
+			{
+				cout << "intersect triangle, pos:" << info.position << endl;
+			}
+			if (person.RayCast(ray, info))
+			{
+				cout << "intersect model, pos:" << info.position << endl;
 			}
 		}
 
-		
-
-		// pass projection matrix to shader (note that in this case it could change every frame)
-		//glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		// camera/view transformation
-		
 		glm::mat4 view = camera.GetViewMatrix();
-
 		glm::mat4 projection = camera.GetPerspectiveProjectionMatrix();
 
 		SCamMat camMat;
@@ -292,6 +295,9 @@ int main()
 			glDisable(GL_BLEND);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glm::mat4 model(1.0f);
+			baseShader.setMat4("model", model);
+			triangle.Draw(shader);
+
 			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			baseShader.setMat4("model", model);
 			baseModel.Draw(baseShader);

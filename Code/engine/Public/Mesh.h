@@ -7,7 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Shader.h"
-
+#include "RayCast.h"
 #include <string>
 #include <vector>
 using namespace std;
@@ -31,7 +31,7 @@ struct Texture {
     string path;
 };
 
-class Mesh {
+class Mesh : public CRayCastable{
 public:
     // mesh Data
     vector<Vertex>       vertices;
@@ -88,6 +88,7 @@ public:
         glActiveTexture(GL_TEXTURE0);
     }
 
+	bool RayCast(const CRay& ray, CRayCastInfo& info) override;
 private:
     // render data 
     unsigned int VBO, EBO;
@@ -131,4 +132,6 @@ private:
         glBindVertexArray(0);
     }
 };
+
+
 #endif
