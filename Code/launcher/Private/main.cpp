@@ -210,6 +210,9 @@ int main()
 	{
 		glm::mat4 view;
 		glm::mat4 proj;
+		glm::vec3 viewPos;
+		float fill;
+		glm::vec3 lightPos;
 	};
 	unsigned int camMatBuffer;
 	glGenBuffers(1, &camMatBuffer);
@@ -273,6 +276,8 @@ int main()
 		SCamMat camMat;
 		camMat.view = view;
 		camMat.proj = projection;
+		camMat.viewPos = camera.Position;
+		camMat.lightPos = glm::vec3(2 * cos(glfwGetTime()), 2, 2 * sin(glfwGetTime()));
 		glBindBuffer(GL_UNIFORM_BUFFER, camMatBuffer);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(camMat), &camMat);
 
@@ -296,9 +301,9 @@ int main()
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glm::mat4 model(1.0f);
 			baseShader.setMat4("model", model);
-			triangle.Draw(shader);
+			//triangle.Draw(shader);
 
-			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			baseShader.setMat4("model", model);
 			baseModel.Draw(baseShader);
 		}
