@@ -221,8 +221,42 @@ int main()
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, camMatBuffer);
 
+	GLuint depthMapFBO;
+	glGenFramebuffers(1, &depthMapFBO);
+	const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
+	GLuint depthMap;
+	glGenTextures(1, &depthMap);
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glEnable(GL_DEPTH_TEST);
+
+	CShader shadowShader(CSourceFinder::FindShaderFullPath("shadow.vert").data(), CSourceFinder::FindShaderFullPath("shadow.frag").data());
+
+
+	struct LightInfo {
+		mat4 view;
+		mat4 projection;
+
+	} light_info;
+	unsigned int lightInfoBuffer;
+	glGenBuffers(1, &lightInfoBuffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, lightInfoBuffer);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(LightInfo), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, lightInfoBuffer);
+	
+
 
 	CTriangleTest triangle;
 	// render loop
@@ -270,6 +304,35 @@ int main()
 			}
 		}
 
+
+		vec3 lightPos = glm::vec3(5 * cos(glfwGetTime()), 3, 5 * sin(glfwGetTime()));
+		{
+			mat4 light_view = glm::lookAt(lightPos, vec3(0, 0, 0), vec3(0, 1, 0));
+			mat4 light_projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
+			light_info.view = light_view;
+			light_info.projection = light_projection;
+			glBindBuffer(GL_UNIFORM_BUFFER, lightInfoBuffer);
+			glBufferData(GL_UNIFORM_BUFFER, sizeof(light_info), &light_info, GL_STATIC_DRAW);
+		}
+
+		// 渲染光源深度到framebuffer深度附件
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		shadowShader.use();
+		{
+			glDisable(GL_BLEND);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glm::mat4 model = person.transform.matrix();
+			shadowShader.setMat4("model", model);
+			person.Draw(shadowShader);
+
+			model = mat4(1.0f);
+			shadowShader.setMat4("model", model);
+			baseModel.Draw(shadowShader);
+		}
+		
+
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = camera.GetPerspectiveProjectionMatrix();
 
@@ -277,7 +340,7 @@ int main()
 		camMat.view = view;
 		camMat.proj = projection;
 		camMat.viewPos = camera.Position;
-		camMat.lightPos = glm::vec3(2 * cos(glfwGetTime()), 2, 2 * sin(glfwGetTime()));
+		camMat.lightPos = lightPos;
 		glBindBuffer(GL_UNIFORM_BUFFER, camMatBuffer);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(camMat), &camMat);
 
@@ -286,6 +349,8 @@ int main()
 		// render
 		// ------
 
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -301,10 +366,11 @@ int main()
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glm::mat4 model(1.0f);
 			baseShader.setMat4("model", model);
-			//triangle.Draw(shader);
-
-			//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-60.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			baseShader.setMat4("model", model);
+			// 绑定深度texture
+			int shadow_idx =  8;
+			glActiveTexture(GL_TEXTURE0 + shadow_idx);
+			glBindTexture(GL_TEXTURE_2D, depthMap);
+			baseShader.setInt("texture_shadowmap", shadow_idx);
 			baseModel.Draw(baseShader);
 		}
 		

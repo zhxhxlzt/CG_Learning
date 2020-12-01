@@ -65,18 +65,42 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
 }
 
 
+
+uniform sampler2D texture_shadowmap;
+
+
+in VS_OUT{
+
+    vec4 FragPosLightSpace;
+
+} fs_in;
+
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    float closestDepth = texture(texture_shadowmap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float shadow = currentDepth - 0.005 > closestDepth  ? 1.0 : 0.0;
+    return shadow;
+}
+
+
 #define USE_PBR 
 void main(){
     vec3 lightDir = normalize(lightPos - oPosition);
     vec3 viewDir = normalize(viewPos - oPosition);
     vec3 normal = normalize(oNormal);
+    
+    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
 
 
     #ifdef USE_PBR
     float metallic = 0.5;
     float roughness = 0.1;
     vec3 spec = specularContribution(lightDir, viewDir, normal, vec3(0.5), metallic, roughness);
-    FragColor = vec4(ALBEDO * 0.2 + spec, 1.0);
+    FragColor = vec4(ALBEDO * 0.2 + (1 - shadow) * spec, 1.0);
     return;
     #endif
     
@@ -85,5 +109,5 @@ void main(){
     float diffuse = max(nl, 0) * 0.3f;
     vec3 H = normalize(viewDir + lightDir);
     float specular = pow(max(dot(H, normal), 0), 128) * 0.5;
-    FragColor = vec4((0.2 + diffuse + specular) * ALBEDO, 1);
+    FragColor = vec4((0.2 + (1 - shadow) * (diffuse + specular)) * ALBEDO, 1);
 }
