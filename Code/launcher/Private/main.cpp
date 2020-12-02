@@ -21,7 +21,16 @@
 #include "Camera.h"
 #include "AABoundingBox.h"
 #include "utils.h"
+#include "RenderTexture.h"
 
+
+class PostProcessShader : public CShader
+{
+public:
+	PostProcessShader(const char* fragPath) : CShader(CSourceFinder::FindShaderFullPath("post.vert").data(), fragPath)
+	{	
+	}
+};
 
 
 
@@ -258,6 +267,9 @@ int main()
 	
 
 
+	CRenderTexture rt(SCR_WIDTH, SCR_HEIGHT);
+	
+	
 	CTriangleTest triangle;
 	// render loop
 	// -----------
@@ -351,8 +363,11 @@ int main()
 
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// rt.BindFrameBuffer();
+
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
 
 
 		// draw our first triangle
