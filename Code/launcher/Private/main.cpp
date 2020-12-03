@@ -24,12 +24,11 @@
 #include "RenderTexture.h"
 
 
-class PostProcessShader : public CShader
+class CPostProcessShader : public CShader
 {
 public:
-	PostProcessShader(const char* fragPath) : CShader(CSourceFinder::FindShaderFullPath("post.vert").data(), fragPath)
-	{	
-	}
+	CPostProcessShader(const char* fragPath);
+	CPostProcessShader() : CPostProcessShader(CSourceFinder::FindShaderFullPath("post.frag").data()) {}
 };
 
 
@@ -268,7 +267,7 @@ int main()
 
 
 	CRenderTexture rt(SCR_WIDTH, SCR_HEIGHT);
-	
+	CPostProcessShader postShader;
 	
 	CTriangleTest triangle;
 	// render loop
@@ -362,8 +361,7 @@ int main()
 		// ------
 
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		// rt.BindFrameBuffer();
+		rt.BindFrameBuffer();
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -412,6 +410,17 @@ int main()
 			bboxShader.setMat4("model", model);
 			person.bounding_box.Draw(bboxShader);
 		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		postShader.use();
+		{
+			glDisable(GL_BLEND);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+		rt.Draw(postShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
@@ -541,4 +550,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(yoffset);
+}
+
+CPostProcessShader::CPostProcessShader(const char* fragPath) : CShader(CSourceFinder::FindShaderFullPath("post.vert").data(), fragPath)
+{
 }

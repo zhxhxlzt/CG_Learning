@@ -15,5 +15,7 @@ private:
 	GLuint m_frameBuffer;
 	GLuint m_colorTex;
 	GLuint m_depthTex;
+	GLuint m_vao;
+	GLuint m_vbo;
 };
 

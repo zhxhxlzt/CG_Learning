@@ -1,4 +1,5 @@
 #include "RenderTexture.h"
+#include <vector>
 
 CRenderTexture::CRenderTexture(unsigned width, unsigned height)
 {
@@ -20,16 +21,43 @@ CRenderTexture::CRenderTexture(unsigned width, unsigned height)
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, m_depthTex, 0);
 
 	bool complete2 = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-	
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glGenVertexArrays(1, &m_vao);
+	glGenBuffers(1, &m_vbo);
+	glBindVertexArray(m_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+
+	struct CB {
+		glm::vec3 aPos;
+		glm::vec2 aUv;
+	};
+
+	std::vector<CB> cb_data = {
+		{{-1, -1, -1}, {0, 0}},
+		{{1, -1, -1}, {1, 0}},
+		{{1, 1, -1}, {1, 1}},
+		{{-1, -1, -1}, {0, 0}},
+		{{1, 1, -1}, {1, 1}},
+		{{-1, 1, -1}, {0, 1}},
+	};
+
+	glBufferData(GL_ARRAY_BUFFER, cb_data.size() * sizeof(CB), cb_data.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(CB), 0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(CB), (void*)offsetof(CB, aUv));
+	glEnableVertexAttribArray(1);
 }
 
 void CRenderTexture::BindFrameBuffer()
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer);
-	// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void CRenderTexture::Draw(CShader& shader)
 {
+	glBindVertexArray(m_vao);
+	glBindTexture(GL_TEXTURE_2D, m_colorTex);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
