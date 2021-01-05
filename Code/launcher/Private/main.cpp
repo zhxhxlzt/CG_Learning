@@ -128,9 +128,11 @@ int CreateTexture2D(std::string tex_path)
 	stbi_image_free(data);
 	return texture;
 }
-
+#include "MyClass.h"
 int main()
 {
+	TestRapidJson();
+	return 0;
 	//TestAABB();
 	using namespace glm;
 	using namespace std;
