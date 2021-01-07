@@ -129,8 +129,62 @@ int CreateTexture2D(std::string tex_path)
 	return texture;
 }
 #include "MyClass.h"
+
+int CreateSampler()
+{
+	GLuint samplerId;
+	glGenSamplers(1, &samplerId);
+
+	glSamplerParameteri(samplerId, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glSamplerParameteri(samplerId, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	return samplerId;
+}
+
+#include "TaskGraph.h"
+void TestTaskGraph()
+{
+	CTaskGraph g;
+	auto f = []() {};
+#define CreateTask(TaskNo) auto task##TaskNo = g.CreateTask("task "#TaskNo, f)
+#define ConnectTask(Prev, Next) g.Connect((task##Prev), (task##Next))
+	CreateTask(0);
+	CreateTask(1);
+	CreateTask(2);
+	CreateTask(3);
+	CreateTask(4);
+	CreateTask(5);
+
+	ConnectTask(0, 1);
+	ConnectTask(0, 2);
+	ConnectTask(0, 3);
+	ConnectTask(1, 3);
+	ConnectTask(1, 5);
+	ConnectTask(3, 5);
+	ConnectTask(2, 3);
+	ConnectTask(2, 4);
+	ConnectTask(4, 3);
+
+	//ConnectTask(5, 4);
+#undef CreateTask
+#undef ConnectTask
+
+	for(int i = 6; i < 1000; i++)
+	{
+		auto t = g.CreateTask((std::stringstream() << "task " << i).str(), f);
+		auto prev_task_no = std::max(0, i % 6);
+		auto prev_task = g.GetTask((std::stringstream() << "task " << prev_task_no).str());
+		g.Connect(prev_task, t);
+	}
+
+	
+	g.Run();
+	getchar();
+
+}
 int main()
 {
+	TestTaskGraph();
+	return 0;
 	TestRapidJson();
 	return 0;
 	//TestAABB();
@@ -272,6 +326,11 @@ int main()
 	CPostProcessShader postShader;
 	
 	CTriangleTest triangle;
+
+
+	int texId = CreateTexture2D(CSourceFinder::FindTexFullPath("awesomeface.png"));
+	
+	
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))

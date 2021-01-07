@@ -26,7 +26,7 @@ struct MetaObjectInfo
 
 	template<typename ReturnType, typename ArgType>
 	ReturnType CallFunc(void* obj, std::string funcName, ArgType arg) {
-		Assert(funcs.find(funcName) != funcs.end(), "没有注册函数:" + funcName);
+		Assert(funcs.find(funcName) != funcs.end(), "没有注册函数: %s", funcName.data());
 		ReturnType ret;
 		funcs[funcName](obj, &arg, &ret);
 		return ret;
@@ -34,20 +34,20 @@ struct MetaObjectInfo
 
 	template<typename ArgType>
 	void CallFunc(void* obj, std::string funcName, ArgType arg) {
-		Assert(void_funcs.find(funcName) != void_funcs.end(), "没有注册函数:" + funcName);
+		Assert(void_funcs.find(funcName) != void_funcs.end(), "没有注册函数: %s", funcName.data());
 		void_funcs[funcName](obj, &arg);
 	}
 
 	template<typename ReturnType>
 	ReturnType CallFunc(void* obj, std::string funcName) {
-		Assert(func_voids.find(funcName) != func_voids.end(), "没有注册函数:" + funcName);
+		Assert(func_voids.find(funcName) != func_voids.end(), "没有注册函数: %s", funcName.data());
 		ReturnType ret;
 		func_voids[funcName](obj, &ret);
 		return ret;
 	}
 
 	void CallFunc(void* obj, std::string funcName) {
-		Assert(void_func_voids.find(funcName) != void_func_voids.end(), "没有注册函数:" + funcName);
+		Assert(void_func_voids.find(funcName) != void_func_voids.end(), "没有注册函数: %s", funcName.data());
 		void_func_voids[funcName](obj);
 	}
 };

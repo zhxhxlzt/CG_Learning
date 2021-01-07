@@ -6,12 +6,13 @@
 #include <functional>
 #include <assert.h>
 #include <iostream>
+#include <future>
+#include <thread>
+#include <queue>
+#include <stack>
 
+#define Move(x) std::move(x)
 
-inline void Assert(bool success, std::string&& msg) {
-	if (!success)
-	{
-		printf("%s", msg.data());
-		assert(false);
-	}
-}
+#define Print(x, ...) printf((x), ##__VA_ARGS__)
+
+#define Assert(success, msg, ...)	if (!(success)) {Print(msg"\n", __VA_ARGS__); assert(success);}
